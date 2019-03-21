@@ -32,6 +32,12 @@ class QuantumGatewayScanner:
         if self._check_auth():
             self._get_connected_devices()
         return self.connected_devices.keys()
+    
+    def scan_devices_by_name(self):
+        self.connected_devices = {}
+        if self._check_auth():
+            self._get_connected_devices_by_name()
+        return [*self.connected_devices.keys()]
 
     def get_device_name(self, device):
         return self.connected_devices.get(device)
@@ -40,6 +46,19 @@ class QuantumGatewayScanner:
         devices_raw = self.session.get(self.host + '/api/devices', timeout=TIMEOUT, verify=self.verify)
         devices = json.loads(devices_raw.text)
         self.connected_devices = {device['mac']: device['name'] for device in devices if device['status']}
+
+    def _get_connected_devices_by_name(self):
+        devices_raw = self.session.get(self.host + '/api/devices', timeout=TIMEOUT, verify=self.verify)        
+        devices = json.loads(devices_raw.text)
+        json_string = json.dumps(devices, indent=2, sort_keys=True)
+        output_file = open("output.json", "w")
+        output_file.write(json_string)
+        output_file.close()        
+        self.connected_devices = {device['name']: { 'mac' : device['mac'], \
+                                                    'ip' :  device['ipAddress'], \
+                                                    'static' : device['staticIp']
+                                                   } \
+            for device in devices if device['status']}
 
     def _check_auth(self):
         res = self.session.get(self.host + '/api/devices', timeout=TIMEOUT, verify=self.verify)
